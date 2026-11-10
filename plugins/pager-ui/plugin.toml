@@ -1,0 +1,8 @@
+name = "pager-ui"
+version = "0.1.0"
+api = 0
+exec = "bin/pager-ui"
+run = "external"
+capabilities = ["query:status", "query:aps.list", "query:alerts.list"]
+memory_mb = 8
+network = false

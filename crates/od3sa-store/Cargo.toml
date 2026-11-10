@@ -1,0 +1,26 @@
+[package]
+name = "od3sa-store"
+description = "SQLite schema and migrations for od3sa-recon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# `bundled` compiles SQLite from source, so the daemon is one static binary
+# and the SQLite it speaks to is the one this crate was built against.
+# rusqlite is MIT; SQLite itself is public domain.
+rusqlite = { version = "0.41", default-features = false, features = ["bundled"] }
+# The aggregator does not parse anything itself: it drives the parsers of
+# `od3sa-parse`. Both crates are MIT.
+od3sa-parse = { workspace = true }
+
+[dev-dependencies]
+# The synthetic frame builders, for the tests. This crate is MIT and builds
+# no binary of its own here.
+od3sa-fixtures = { workspace = true }

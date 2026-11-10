@@ -1,0 +1,14 @@
+[package]
+name = "od3sa-parse"
+description = "Passive 802.11 / radiotap metadata parsers for od3sa-recon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]

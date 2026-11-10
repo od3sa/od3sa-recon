@@ -1,0 +1,8 @@
+# Clippy configuration. The lint *levels* live in the workspace `Cargo.toml`
+# under `[workspace.lints]`; this file holds the options.
+msrv = "1.89"
+
+# Tests may panic freely: they are the ones that assert failure.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
+allow-dbg-in-tests = true

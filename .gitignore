@@ -1,0 +1,24 @@
+# Rust
+target/
+**/*.rs.bk
+# cargo-fuzz (OR-105)
+fuzz/artifacts/
+fuzz/corpus/
+# SDK / build trees
+openwrt-sdk-*/
+sdk/
+build/out/
+/bin/
+dl/
+*.ipk
+# capture/real data (never commit)
+*.pcap
+*.pcapng
+*.pcap*
+*.kismet
+*.sqlite
+*.sqlite-*
+captures/
+loot/
+*.log
+device-report.txt

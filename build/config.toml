@@ -1,0 +1,17 @@
+# The interface to read.
+interface = "wlan1mon"
+
+# Where the database lives.
+database = "/mmc/od3sa-recon/recon.sqlite"
+
+# The sockets the plugins use.
+events_socket = "/tmp/od3sa-recon/events.sock"
+query_socket = "/tmp/od3sa-recon/query.sock"
+
+# Where gpsd is, if the Pager has a GPS.
+gpsd = "127.0.0.1:2947"
+
+# The alert rules.
+[alerts]
+enabled = true
+new_device = { enabled = true, severity = "info" }

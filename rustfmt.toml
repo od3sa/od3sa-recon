@@ -1,0 +1,6 @@
+# Formatting is checked in CI (`cargo fmt --check`), so this file is the single
+# source of truth for the style of the tree.
+edition = "2024"
+max_width = 100
+newline_style = "Unix"
+use_field_init_shorthand = true
