@@ -1,0 +1,106 @@
+# Build the package and publish a release.
+#
+# A tag of the form v<version> triggers it: the tag's version has to match
+# the workspace's, so a release can never carry a package that disagrees
+# with the source it was built from.
+#
+# The daemon and the plugins are cross-built here, exactly as they are on
+# the build machine, and the package is assembled with the SDK's own
+# ipkg-build. The result is one ipk, the daemon binary on its own, and a
+# checksum of both.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The tag to release, for example v0.1.0"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build the package
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The mipsel target is Tier 3, so the standard library is built from
+      # source with -Zbuild-std, which needs the nightly toolchain and its
+      # sources.
+      # Pinned, because the nightly channel moves: two builds of the same
+      # source a week apart would not be the same binary. The date goes in
+      # as the action's input rather than as its tag, because the action
+      # does not publish a tag for every dated nightly.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-11-08
+          components: rust-src
+
+      # libpcap generates its scanner and parser, so it needs flex and bison.
+      - name: Install flex and bison
+        run: sudo apt-get update && sudo apt-get install -y flex bison
+
+      - name: Check the tag against the workspace version
+        run: |
+          VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)"
+          echo "the workspace version is $VERSION"
+          if [ "${{ github.event_name }}" = "push" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="${{ inputs.tag }}"
+          fi
+          echo "the tag is $TAG"
+          if [ "$TAG" != "v$VERSION" ]; then
+            echo "::error::the tag $TAG does not match the workspace version v$VERSION"
+            exit 1
+          fi
+
+      - name: Build the daemon and the plugins for the device
+        run: ./build/build-mipsel.sh
+        env:
+          OD3SA_TOOLCHAIN: nightly-2026-11-08
+
+      - name: Build the package
+        run: ./build/build-ipk.sh
+
+      - name: Collect the artifacts
+        run: |
+          mkdir -p dist
+          cp build/out/*.ipk dist/
+          cp target/mipsel-unknown-linux-musl/release/od3sa-recond dist/
+          cd dist && sha256sum ./* > SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: dist/
+
+  release:
+    name: Publish the release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+          path: dist
+
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event_name == 'push' && github.ref_name || inputs.tag }}
+        run: |
+          gh release create "$TAG" dist/* \
+            --title "$TAG" \
+            --generate-notes \
+            --notes-start-tag "$(git describe --tags --abbrev=0 2>/dev/null || echo '')" \
+            || gh release create "$TAG" dist/* --title "$TAG" --generate-notes

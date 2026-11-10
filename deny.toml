@@ -1,0 +1,98 @@
+# The dependency licence policy, enforced rather than only stated.
+#
+# The project's rule: every crate or Cargo.toml sets `license = "MIT"`, and
+# new dependencies must be MIT-compatible (MIT, Apache-2.0, BSD-2/3-Clause,
+# ISC, Zlib, Unicode, etc.). No GPL, LGPL or AGPL dependency.
+#
+# This file is that rule in a form a machine checks. The allow list below is
+# the set of licences a dependency may carry; anything outside it fails the
+# build, and a failure is the point: adding a GPL dependency should stop the
+# pull request and ask, rather than merge quietly.
+#
+# Run it with `cargo deny check`, or `cargo deny check licenses bans
+# advisories` for the full set. CI runs it on every pull request.
+
+[graph]
+# Every target and every feature, so a licence that only shows up behind a
+# feature flag is still seen.
+all-features = true
+targets = [
+    "x86_64-unknown-linux-gnu",
+    "mipsel-unknown-linux-musl",
+]
+
+[licenses]
+# The MIT-compatible set. These are the licences the project names, plus the
+# few that the crates.io ecosystem uses for equivalent terms.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unlicense",
+    "CC0-1.0",
+    "BSL-1.0",
+    "MIT-0",
+    "PostgreSQL",
+    # The fuzz crate's libfuzzer-sys is "(MIT OR Apache-2.0) AND NCSA".
+    # NCSA is OSI-approved and permissive, in the same family as MIT.
+    "NCSA",
+]
+# A licence the crate's manifest does not spell out is a question for a
+# human, not a yes. 0.93 is the threshold above which cargo-deny refuses to
+# guess.
+confidence-threshold = 0.93
+# The crates that carry a licence expression cargo-deny cannot resolve on
+# its own. There are none today; the table is here so that adding one is a
+# deliberate act with a reason attached, rather than a silent exception.
+exceptions = []
+# The allow list above is deliberately wider than what today's graph uses:
+# it is the set a dependency may carry, not a list of what it does. A
+# licence in the list that no crate happens to use is not a problem, so
+# this warning is off.
+unused-allowed-license = "allow"
+
+[bans]
+# Multiple versions of one crate in the graph is not an error on its own,
+# but it is worth seeing: it usually means a dependency grew a version
+# range that drifted.
+multiple-versions = "warn"
+# A wildcard dependency is a version requirement with no upper bound, like
+# `serde_json = "*"`. It is refused: a dependency that can jump a major
+# version is a dependency that can break the build without a commit to
+# this repository. The requirements here are `"1"` and `"0.9"`, which name
+# a major version and mean "compatible with", and cargo-deny does not
+# count those as wildcards.
+wildcards = "deny"
+highlight = "all"
+# A crate nobody has updated in years is a risk in a dependency tree.
+
+skip-tree = []
+
+[sources]
+# Only crates.io. A git dependency or a private registry is a dependency
+# this project cannot audit from the lock file, so it is refused.
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []
+# The vendored SQLite in libsqlite3-sys is a path dependency inside the
+# crate, not a git one, so nothing is allowed here.
+
+[advisories]
+# The RustSec advisory database. A known-vulnerable dependency fails the
+# build.
+version = 2
+yanked = "deny"
+ignore = []
+# No advisory is ignored. If one has to be, it goes here with a reason and
+# a date, and the reason is reviewed.
+
+[licenses.private]
+# Nothing may be marked private: there is no private crate in this
+# workspace, and a dependency that reexports one would leak it.
+ignore = false

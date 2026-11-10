@@ -1,0 +1,27 @@
+[package]
+name = "od3sa-alerts"
+description = "The awareness alert rules for od3sa-recon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# The rules read what the aggregator produced, so they need its types.
+od3sa-store = { workspace = true }
+# toml is MIT OR Apache-2.0.
+toml = "0.9"
+# The details of an alert are JSON, as the contract says. `od3sa-store` does
+# not re-export `serde_json`, so the crate depends on it directly.
+# serde_json is MIT OR Apache-2.0.
+serde_json = "1"
+
+[dev-dependencies]
+# The synthetic frame builders, for the tests. This crate is MIT and builds
+# no binary of its own here.
+od3sa-fixtures = { workspace = true }

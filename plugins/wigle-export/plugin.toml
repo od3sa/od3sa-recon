@@ -1,0 +1,8 @@
+name = "wigle-export"
+version = "0.1.0"
+api = 0
+exec = "bin/wigle-export"
+run = "external"
+capabilities = ["query:aps.list", "query:sightings.list", "fs:write:/mmc/od3sa-recon/export"]
+memory_mb = 8
+network = false

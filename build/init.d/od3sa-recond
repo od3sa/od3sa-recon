@@ -1,0 +1,33 @@
+#!/bin/sh /etc/rc.common
+#
+# od3sa-recond: the passive, listen-only recon collector.
+#
+# The daemon, its database, its configuration and its plugins all live on
+# the SD card, under /mmc/od3sa-recon. Only this script lives on the
+# overlay, because a firmware update wipes the overlay and /mmc survives.
+#
+# This script starts one program and touches nothing else. It does not
+# configure a radio, it does not change a channel or a mode, and it does
+# not bring an interface up or down. The collector reads from a monitor
+# interface that another service already owns, and it only ever listens.
+
+USE_PROCD=1
+START=99
+STOP=10
+
+PROG=/mmc/od3sa-recon/od3sa-recond
+CONFIG=/mmc/od3sa-recon/config.toml
+
+start_service() {
+    procd_open_instance
+    procd_set_param command "$PROG" --collect --config "$CONFIG"
+    # Restart it if it dies: at most five times in an hour, five seconds
+    # apart.
+    procd_set_param respawn 3600 5 5
+    # The Pager has about 104 MB of RAM and a 580 MHz CPU. The collector
+    # yields to everything else.
+    procd_set_param nice 10
+    procd_set_param stdout 1
+    procd_set_param stderr 1
+    procd_close_instance
+}

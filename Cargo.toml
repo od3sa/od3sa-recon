@@ -1,0 +1,57 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/od3sa-alerts",
+    "crates/od3sa-capture",
+    "crates/od3sa-collector",
+    "crates/od3sa-events",
+    "crates/od3sa-gps",
+    "crates/od3sa-ingest",
+    "crates/od3sa-fixtures",
+    "crates/od3sa-parse",
+    "crates/od3sa-plugins",
+    "crates/od3sa-plugin",
+    "crates/od3sa-recond",
+    "crates/od3sa-store",
+]
+
+[workspace.package]
+version = "0.1.4"
+edition = "2024"
+rust-version = "1.89"
+license = "MIT"
+repository = "https://github.com/od3sa/od3sa-recon"
+authors = ["Yakov Khalinsky"]
+
+[workspace.dependencies]
+# The crates of this workspace, by path. Each one names its version too,
+# so a dependency on it is a versioned dependency and not a wildcard.
+od3sa-alerts = { path = "crates/od3sa-alerts", version = "0.1.4" }
+od3sa-capture = { path = "crates/od3sa-capture", version = "0.1.4" }
+od3sa-collector = { path = "crates/od3sa-collector", version = "0.1.4" }
+od3sa-events = { path = "crates/od3sa-events", version = "0.1.4" }
+od3sa-fixtures = { path = "crates/od3sa-fixtures", version = "0.1.4" }
+od3sa-gps = { path = "crates/od3sa-gps", version = "0.1.4" }
+od3sa-ingest = { path = "crates/od3sa-ingest", version = "0.1.4" }
+od3sa-parse = { path = "crates/od3sa-parse", version = "0.1.4" }
+od3sa-plugin = { path = "crates/od3sa-plugin", version = "0.1.4" }
+od3sa-plugins = { path = "crates/od3sa-plugins", version = "0.1.4" }
+od3sa-store = { path = "crates/od3sa-store", version = "0.1.4" }
+
+# Lints shared by every crate. `cargo clippy -- -D warnings` turns these into
+# errors, so keep the list tight and add new entries deliberately.
+[workspace.lints.rust]
+missing_docs = "warn"
+missing_debug_implementations = "warn"
+unsafe_op_in_unsafe_fn = "deny"
+rust_2018_idioms = { level = "warn", priority = -1 }
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+# No panicking calls in the daemon: a parser bug must not take the collector
+# down. `unwrap` / `expect` stay allowed in tests (clippy.toml).
+unwrap_used = "deny"
+expect_used = "deny"
+# The daemon and the CLI both write to stdout/stderr on purpose.
+print_stdout = "allow"
+print_stderr = "allow"

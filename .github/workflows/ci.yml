@@ -1,0 +1,191 @@
+# CI for od3sa-recon.
+#
+# The x86 jobs run on every push and pull request. The mipsel cross-build job
+# is added by OR-200, once the build route is settled: mipsel-unknown-linux-musl
+# is a Tier 3 target with no prebuilt std, so it cannot simply be "added" to
+# a stock toolchain.
+#
+# Nothing here builds, runs or tests anything on a radio, and no capture or
+# real device data enters CI: the fixtures are synthetic.
+
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - name: cargo fmt --check
+        run: cargo fmt --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # The capture crate links against libpcap, so the test binaries need
+      # it. The crate's build script finds it with pkg-config.
+      - name: Install libpcap
+        run: sudo apt-get update && sudo apt-get install -y libpcap-dev
+      - name: cargo test
+        run: cargo test --workspace --all-targets
+
+  docs:
+    name: Docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: cargo doc
+        run: cargo doc --workspace --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  # The licence policy, enforced rather than only stated: a dependency
+  # outside the allow list in deny.toml fails the build, so a GPL or AGPL
+  # dependency cannot merge quietly. CONTRIBUTING.md says the same thing
+  # in prose; this is the part a machine checks.
+  #
+  # The action runs cargo-deny itself, inside a container, so cargo-deny
+  # is not on the PATH of the steps after it. Each check is therefore an
+  # action invocation rather than a `run:` step.
+  licenses:
+    name: Licence audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the licences, the bans, the advisories and the sources
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          # The container ships Rust 1.85, which is below the workspace's
+          # MSRV, so the toolchain is moved up before the check runs.
+          rust-version: stable
+          arguments: --all-features
+          command: check
+          command-arguments: licenses bans advisories sources
+          log-level: info
+      # The fuzz crate is a workspace of its own, with its own lock file
+      # and its own dependencies, so it is checked separately.
+      - name: Check the fuzz workspace's dependencies
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          rust-version: stable
+          manifest-path: fuzz/Cargo.toml
+          arguments: --all-features
+          command: check
+          command-arguments: licenses bans advisories sources
+          log-level: info
+
+  mipsel:
+    name: mipsel cross build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The target is Tier 3, so there is no prebuilt standard library and
+      # the build has to make one with -Zbuild-std, which needs the nightly
+      # toolchain and its sources.
+      # Pinned, because the nightly channel moves: two builds of the same
+      # source a week apart would not be the same binary. The date goes in
+      # as the action's input rather than as its tag, because the action
+      # does not publish a tag for every dated nightly.
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-11-08
+          components: rust-src
+
+      # libpcap generates its scanner and parser, which needs flex and bison.
+      - name: Install flex and bison
+        run: sudo apt-get update && sudo apt-get install -y flex bison
+
+      # Which hosts the runner can reach decides where the toolchain comes
+      # from, so ask before downloading 200 MB from the wrong one.
+      - name: Check the sources this build needs
+        run: |
+          for url in \
+            http://deb.debian.org/debian/pool/main/libp/libpcap/libpcap_1.10.5.orig.tar.xz \
+            https://downloads.openwrt.org/releases/24.10.1/targets/ramips/mt76x8/openwrt-sdk-24.10.1-ramips-mt76x8_gcc-13.3.0_musl.Linux-x86_64.tar.zst \
+          ; do
+            printf '%-100s ' "$url"
+            curl -s -o /dev/null --max-time 20 -w '%{http_code}\n' -r 0-1024 "$url" || echo FAILED
+          done
+
+      # The SDK and the cross-built libpcap take a while to make, and they
+      # do not change unless the script does.
+      - name: Cache the cross toolchain
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/src/od3sa-mipsel
+            ~/toolchains
+          key: mipsel-toolchain-${{ hashFiles('build/build-mipsel.sh') }}
+
+      - name: Build the mipsel binary
+        run: ./build/build-mipsel.sh
+        env:
+          OD3SA_TOOLCHAIN: nightly-2026-11-08
+
+      # The build script checks these itself, but the evidence belongs in the
+      # log: a hard-float binary would fault on the Pager's FPU-less CPU,
+      # and a dynamic one would need a loader and a shared library on the
+      # device.
+      - name: Check the float ABI and the linkage
+        run: |
+          BIN=target/mipsel-unknown-linux-musl/release/od3sa-recond
+          file "$BIN"
+          readelf -A "$BIN" | grep "FP ABI"
+          readelf -h "$BIN" | grep Flags
+          test -z "$(readelf -l "$BIN" | grep INTERP)" || { echo "FAIL: the binary wants an interpreter"; exit 1; }
+          test -z "$(readelf -d "$BIN" 2>/dev/null | grep NEEDED)" || { echo "FAIL: the binary needs shared libraries"; exit 1; }
+          readelf -A "$BIN" | grep -q "Soft float" || { echo "FAIL: the binary is not soft-float"; exit 1; }
+          echo "OK: static, soft-float, O32"
+
+      # The binary the device test needs, built by the same script as
+      # everywhere else.
+      - name: Upload the binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: od3sa-recond-mipsel
+          path: target/mipsel-unknown-linux-musl/release/od3sa-recond
+
+      # The package, built on every merge to main, so a broken package is
+      # caught by a pull request rather than by the next release.
+      - name: Build the package
+        run: ./build/build-ipk.sh
+
+      - name: Upload the package
+        uses: actions/upload-artifact@v4
+        with:
+          name: od3sa-recon-ipk
+          path: build/out/*.ipk

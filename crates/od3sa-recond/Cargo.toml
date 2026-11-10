@@ -1,0 +1,27 @@
+[package]
+name = "od3sa-recond"
+description = "Passive, listen-only recon collector daemon for the WiFi Pineapple Pager"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "od3sa-recond"
+path = "src/main.rs"
+
+[dependencies]
+od3sa-parse = { workspace = true }
+od3sa-capture = { workspace = true }
+od3sa-collector = { workspace = true }
+od3sa-events = { workspace = true }
+od3sa-gps = { workspace = true }
+od3sa-plugin = { workspace = true }
+od3sa-store = { workspace = true }
+# serde_json is MIT OR Apache-2.0.
+serde_json = "1"

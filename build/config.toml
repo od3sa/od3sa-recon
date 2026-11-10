@@ -1,0 +1,26 @@
+# The interface to read.
+interface = "wlan1mon"
+
+# Where the database lives.
+database = "/mmc/od3sa-recon/recon.sqlite"
+
+# The sockets the plugins use.
+events_socket = "/tmp/od3sa-recon/events.sock"
+query_socket = "/tmp/od3sa-recon/query.sock"
+
+# Where gpsd is, if the Pager has a GPS.
+gpsd = "127.0.0.1:2947"
+
+# How long the collected data is kept, and how much disk it may take.
+#
+# The daemon deletes what has aged out and rotates the database when it
+# goes over the cap, so the SD card cannot fill up. The data that matters
+# is the recent kind; the rest is what the export plugins have already
+# sent elsewhere.
+retention_days = 30
+max_db_mb = 512
+
+# The alert rules.
+[alerts]
+enabled = true
+new_device = { enabled = true, severity = "info" }

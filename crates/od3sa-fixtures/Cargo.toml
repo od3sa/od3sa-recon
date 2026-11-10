@@ -1,0 +1,22 @@
+[package]
+name = "od3sa-fixtures"
+description = "Synthetic 802.11 / radiotap fixture generator for od3sa-recon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "od3sa-fixtures"
+path = "src/main.rs"
+
+# The parser is a test dependency: the fixtures crate builds frames, and
+# its tests read them back with the parser to check they are what they
+# claim to be. Nothing in the crate itself calls it.
+[dev-dependencies]
+od3sa-parse = { workspace = true }

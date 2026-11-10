@@ -1,0 +1,26 @@
+[package]
+name = "od3sa-collector"
+description = "The collector: capture, aggregate, write and publish for od3sa-recon"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+od3sa-alerts = { workspace = true }
+od3sa-capture = { workspace = true }
+od3sa-events = { workspace = true }
+od3sa-gps = { workspace = true }
+od3sa-store = { workspace = true }
+# serde_json is MIT OR Apache-2.0, and toml is MIT OR Apache-2.0.
+serde_json = "1"
+toml = "0.9"
+
+[dev-dependencies]
+# The synthetic frame builders, for the tests.
+od3sa-fixtures = { workspace = true }

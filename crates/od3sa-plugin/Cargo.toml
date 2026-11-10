@@ -1,0 +1,17 @@
+[package]
+name = "od3sa-plugin"
+description = "The plugin host for od3sa-recon: manifests, capabilities, tokens and supervision"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+# toml is MIT OR Apache-2.0. The manifest is TOML, and `toml` is already in
+# the workspace, so the crate depends on it and on nothing else.
+toml = "0.9"
